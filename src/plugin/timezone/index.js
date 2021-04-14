@@ -42,7 +42,7 @@ export default (o, c, d) => {
     return dtf.formatToParts(date)
   }
 
-  const tzOffset = (timestamp, timezone) => {
+  const toObject = (timestamp, timezone) => {
     const formatResult = makeFormatParts(timestamp, timezone)
     const filled = []
     for (let i = 0; i < formatResult.length; i += 1) {
@@ -58,8 +58,19 @@ export default (o, c, d) => {
     // https://github.com/nodejs/node/issues/33027
     /* istanbul ignore next */
     const fixedHour = hour === 24 ? 0 : hour
-    const utcString = `${filled[0]}-${filled[1]}-${filled[2]} ${fixedHour}:${filled[4]}:${filled[5]}:000`
-    const utcTs = d.utc(utcString).valueOf()
+    return {
+      year: filled[0],
+      month: filled[1],
+      date: filled[2],
+      hour: fixedHour,
+      minute: filled[4],
+      second: filled[5]
+    }
+  }
+
+  const tzOffset = (timestamp, timezone) => {
+    const object = toObject(timestamp, timezone)
+    const utcTs = d.utc(`${object.year}-${object.month}-${object.date} ${object.hour}:${object.minute}:${object.second}:000`).valueOf()
     let asTS = +timestamp
     const over = asTS % 1000
     asTS -= over
@@ -95,8 +106,9 @@ export default (o, c, d) => {
   proto.tz = function (timezone = defaultTimezone, keepLocalTime) {
     const oldOffset = this.utcOffset()
     const date = this.toDate()
-    const target = date.toLocaleString('en-US', { timeZone: timezone })
-    const diff = Math.round((date - new Date(target)) / 1000 / 60)
+    const object = toObject(date.valueOf(), timezone)
+    const target = `${object.year}-${this.$utils().s(object.month, 2, '0')}-${this.$utils().s(object.date, 2, '0')}T${this.$utils().s(object.hour, 2, '0')}:${this.$utils().s(object.minute, 2, '0')}:${this.$utils().s(object.second, 2, '0')}`
+    const diff = Math.round((date - d(target)) / 1000 / 60)
     let ins = d(target).$set(MS, this.$ms)
       .utcOffset((-Math.round(date.getTimezoneOffset() / 15) * 15) - diff, true)
     if (keepLocalTime) {
