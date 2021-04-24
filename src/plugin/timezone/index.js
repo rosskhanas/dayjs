@@ -111,6 +111,7 @@ export default (o, c, d) => {
     const diff = Math.round((date - d(target)) / 1000 / 60)
     let ins = d(target).$set(MS, this.$ms)
       .utcOffset((-Math.round(date.getTimezoneOffset() / 15) * 15) - diff, true)
+    delete ins.$u
     if (keepLocalTime) {
       const newOffset = ins.utcOffset()
       ins = ins.add(oldOffset - newOffset, MIN)
